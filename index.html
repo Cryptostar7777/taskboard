@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Task Board</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            padding: 2rem;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .search-bar {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            color: #fff;
+            font-size: 0.95rem;
+            min-width: 300px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-bar:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .search-bar::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            color: #fff;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn.active {
+            background: rgba(102, 126, 234, 0.6);
+            border-color: rgba(102, 126, 234, 0.8);
+        }
+
+        select.filter-btn {
+            appearance: none;
+            padding-right: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            cursor: pointer;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .column {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 400px;
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .column-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-count {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--project-color);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .priority-indicator {
+            font-size: 1.2rem;
+            margin-left: 0.5rem;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .priority-high {
+            color: #ff6b6b;
+        }
+
+        .priority-medium {
+            color: #ffd93d;
+        }
+
+        .priority-low {
+            color: #6bcf7f;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .project-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--project-color);
+            color: #fff;
+            width: fit-content;
+        }
+
+        .assignee {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .assignee-icon {
+            font-size: 1.3rem;
+        }
+
+        .card-date {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .card-notes {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .notes-toggle {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .notes-toggle:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .notes-content {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            display: none;
+        }
+
+        .notes-content.expanded {
+            display: block;
+        }
+
+        .blocked-by {
+            margin-top: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 107, 107, 0.2);
+            border-left: 3px solid #ff6b6b;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .last-update {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .search-bar {
+                min-width: 100%;
+            }
+
+            .board {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .controls {
+                padding: 0 1rem;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            animation: slideIn 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Kanban Task Board</h1>
+        <div class="controls">
+            <input type="text" class="search-bar" id="searchBar" placeholder="🔍 Search tasks...">
+            <div class="filter-group">
+                <select class="filter-btn" id="projectFilter">
+                    <option value="">All Projects</option>
+                    <option value="Bali Housing">Bali Housing</option>
+                    <option value="Чистый воздух">Чистый воздух</option>
+                    <option value="Trading">Trading</option>
+                    <option value="Padel">Padel</option>
+                    <option value="System">System</option>
+                    <option value="IronClaw">IronClaw</option>
+                </select>
+                <select class="filter-btn" id="assigneeFilter">
+                    <option value="">All Assignees</option>
+                    <option value="Egor">Egor</option>
+                    <option value="Vivara">Vivara</option>
+                </select>
+                <select class="filter-btn" id="priorityFilter">
+                    <option value="">All Priorities</option>
+                    <option value="High">🔴 High</option>
+                    <option value="Medium">🟡 Medium</option>
+                    <option value="Low">🟢 Low</option>
+                </select>
+            </div>
+            <button class="filter-btn" id="resetBtn">Reset Filters</button>
+        </div>
+    </div>
+
+    <div class="loading" id="loading">Loading tasks...</div>
+
+    <div class="board" id="board" style="display: none;">
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">📋 To Do</div>
+                <div class="card-count" id="count-todo">0</div>
+            </div>
+            <div class="cards" id="cards-todo"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">🔄 In Progress</div>
+                <div class="card-count" id="count-progress">0</div>
+            </div>
+            <div class="cards" id="cards-progress"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">⏳ Waiting</div>
+                <div class="card-count" id="count-waiting">0</div>
+            </div>
+            <div class="cards" id="cards-waiting"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">🚫 Blocked</div>
+                <div class="card-count" id="count-blocked">0</div>
+            </div>
+            <div class="cards" id="cards-blocked"></div>
+        </div>
+
+        <div class="column">
+            <div class="column-header">
+                <div class="column-title">✅ Done</div>
+                <div class="card-count" id="count-done">0</div>
+            </div>
+            <div class="cards" id="cards-done"></div>
+        </div>
+    </div>
+
+    <div class="last-update" id="lastUpdate"></div>
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/1cEH-AJ1v7hAq-vWgpSEaEXHL8pnCDM6pmTb_rTIJzCw/export?format=csv';
+        const REFRESH_INTERVAL = 60000; // 60 seconds
+
+        const PROJECT_COLORS = {
+            'Bali Housing': '#00b894',
+            'Чистый воздух': '#6c5ce7',
+            'Trading': '#fdcb6e',
+            'Padel': '#e17055',
+            'System': '#74b9ff',
+            'IronClaw': '#fd79a8'
+        };
+
+        const ASSIGNEE_ICONS = {
+            'Egor': '👤',
+            'Vivara': '🌀'
+        };
+
+        const PRIORITY_ICONS = {
+            'High': '🔴',
+            'Medium': '🟡',
+            'Low': '🟢'
+        };
+
+        const STATUS_MAP = {
+            '📋 To Do': 'todo',
+            '🔄 In Progress': 'progress',
+            '⏳ Waiting': 'waiting',
+            '🚫 Blocked': 'blocked',
+            '✅ Done': 'done'
+        };
+
+        let allTasks = [];
+        let filteredTasks = [];
+
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            const tasks = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+
+                const task = {};
+                headers.forEach((header, index) => {
+                    task[header] = values[index] || '';
+                });
+
+                tasks.push(task);
+            }
+
+            return tasks;
+        }
+
+        function createCard(task) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.setProperty('--project-color', PROJECT_COLORS[task.Project] || '#667eea');
+
+            const priorityClass = task.Priority ? `priority-${task.Priority.toLowerCase()}` : '';
+            const priorityIcon = PRIORITY_ICONS[task.Priority] || '';
+            const assigneeIcon = ASSIGNEE_ICONS[task.Assignee] || '👤';
+            const hasNotes = task.Notes && task.Notes.trim();
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-title">${task.Task || 'Untitled Task'}</div>
+                    ${priorityIcon ? `<div class="priority-indicator ${priorityClass}">${priorityIcon}</div>` : ''}
+                </div>
+                <div class="card-meta">
+                    ${task.Project ? `<div class="project-badge" style="background: ${PROJECT_COLORS[task.Project] || '#667eea'}">${task.Project}</div>` : ''}
+                    ${task.Assignee ? `<div class="assignee"><span class="assignee-icon">${assigneeIcon}</span>${task.Assignee}</div>` : ''}
+                    ${task.Created ? `<div class="card-date">Created: ${task.Created}</div>` : ''}
+                </div>
+                ${hasNotes ? `
+                    <div class="card-notes">
+                        <div class="notes-toggle" onclick="toggleNotes(this)">
+                            <span>📝</span>
+                            <span>View notes</span>
+                        </div>
+                        <div class="notes-content">${task.Notes}</div>
+                    </div>
+                ` : ''}
+                ${task['Blocked By'] && task['Blocked By'].trim() ? `
+                    <div class="blocked-by">🚫 Blocked by: ${task['Blocked By']}</div>
+                ` : ''}
+            `;
+
+            return card;
+        }
+
+        function toggleNotes(element) {
+            const notesContent = element.nextElementSibling;
+            const isExpanded = notesContent.classList.toggle('expanded');
+            element.querySelector('span:last-child').textContent = isExpanded ? 'Hide notes' : 'View notes';
+        }
+
+        function renderBoard() {
+            // Clear all columns
+            Object.keys(STATUS_MAP).forEach(status => {
+                const columnId = STATUS_MAP[status];
+                const container = document.getElementById(`cards-${columnId}`);
+                if (container) container.innerHTML = '';
+            });
+
+            // Group tasks by status
+            const tasksByStatus = {};
+            Object.keys(STATUS_MAP).forEach(status => {
+                tasksByStatus[status] = [];
+            });
+
+            filteredTasks.forEach(task => {
+                const status = task.Status;
+                if (tasksByStatus[status]) {
+                    tasksByStatus[status].push(task);
+                }
+            });
+
+            // Render cards in columns
+            Object.keys(STATUS_MAP).forEach(status => {
+                const columnId = STATUS_MAP[status];
+                const container = document.getElementById(`cards-${columnId}`);
+                const tasks = tasksByStatus[status] || [];
+
+                tasks.forEach(task => {
+                    container.appendChild(createCard(task));
+                });
+
+                // Update card count
+                const countElement = document.getElementById(`count-${columnId}`);
+                if (countElement) {
+                    countElement.textContent = tasks.length;
+                }
+            });
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchBar').value.toLowerCase();
+            const projectFilter = document.getElementById('projectFilter').value;
+            const assigneeFilter = document.getElementById('assigneeFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+
+            filteredTasks = allTasks.filter(task => {
+                const matchesSearch = !searchTerm ||
+                    task.Task.toLowerCase().includes(searchTerm) ||
+                    (task.Notes && task.Notes.toLowerCase().includes(searchTerm)) ||
+                    (task.Project && task.Project.toLowerCase().includes(searchTerm));
+
+                const matchesProject = !projectFilter || task.Project === projectFilter;
+                const matchesAssignee = !assigneeFilter || task.Assignee === assigneeFilter;
+                const matchesPriority = !priorityFilter || task.Priority === priorityFilter;
+
+                return matchesSearch && matchesProject && matchesAssignee && matchesPriority;
+            });
+
+            renderBoard();
+        }
+
+        function resetFilters() {
+            document.getElementById('searchBar').value = '';
+            document.getElementById('projectFilter').value = '';
+            document.getElementById('assigneeFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            applyFilters();
+        }
+
+        async function loadTasks() {
+            try {
+                const response = await fetch(CSV_URL);
+                const csv = await response.text();
+                allTasks = parseCSV(csv);
+                filteredTasks = allTasks;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('board').style.display = 'grid';
+
+                renderBoard();
+
+                const now = new Date();
+                document.getElementById('lastUpdate').textContent =
+                    `Last updated: ${now.toLocaleTimeString()}`;
+            } catch (error) {
+                console.error('Error loading tasks:', error);
+                document.getElementById('loading').textContent =
+                    'Error loading tasks. Please check the CSV URL.';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('searchBar').addEventListener('input', applyFilters);
+        document.getElementById('projectFilter').addEventListener('change', applyFilters);
+        document.getElementById('assigneeFilter').addEventListener('change', applyFilters);
+        document.getElementById('priorityFilter').addEventListener('change', applyFilters);
+        document.getElementById('resetBtn').addEventListener('click', resetFilters);
+
+        // Initial load and auto-refresh
+        loadTasks();
+        setInterval(loadTasks, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
