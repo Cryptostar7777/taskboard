@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kanban Task Board</title>
+    <title>📋 Доска задач — Egor & Vivara</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -350,12 +350,12 @@
 </head>
 <body>
     <div class="header">
-        <h1>📊 Kanban Task Board</h1>
+        <h1>📊 Доска задач</h1>
         <div class="controls">
-            <input type="text" class="search-bar" id="searchBar" placeholder="🔍 Search tasks...">
+            <input type="text" class="search-bar" id="searchBar" placeholder="🔍 Поиск задач...">
             <div class="filter-group">
                 <select class="filter-btn" id="projectFilter">
-                    <option value="">All Projects</option>
+                    <option value="">Все проекты</option>
                     <option value="Bali Housing">Bali Housing</option>
                     <option value="Чистый воздух">Чистый воздух</option>
                     <option value="Trading">Trading</option>
@@ -364,27 +364,27 @@
                     <option value="IronClaw">IronClaw</option>
                 </select>
                 <select class="filter-btn" id="assigneeFilter">
-                    <option value="">All Assignees</option>
+                    <option value="">Все исполнители</option>
                     <option value="Egor">Egor</option>
                     <option value="Vivara">Vivara</option>
                 </select>
                 <select class="filter-btn" id="priorityFilter">
-                    <option value="">All Priorities</option>
+                    <option value="">Все приоритеты</option>
                     <option value="High">🔴 High</option>
                     <option value="Medium">🟡 Medium</option>
                     <option value="Low">🟢 Low</option>
                 </select>
             </div>
-            <button class="filter-btn" id="resetBtn">Reset Filters</button>
+            <button class="filter-btn" id="resetBtn">Сбросить фильтры</button>
         </div>
     </div>
 
-    <div class="loading" id="loading">Loading tasks...</div>
+    <div class="loading" id="loading">Загрузка задач...</div>
 
     <div class="board" id="board" style="display: none;">
         <div class="column">
             <div class="column-header">
-                <div class="column-title">📋 To Do</div>
+                <div class="column-title">📋 К выполнению</div>
                 <div class="card-count" id="count-todo">0</div>
             </div>
             <div class="cards" id="cards-todo"></div>
@@ -392,7 +392,7 @@
 
         <div class="column">
             <div class="column-header">
-                <div class="column-title">🔄 In Progress</div>
+                <div class="column-title">🔄 В работе</div>
                 <div class="card-count" id="count-progress">0</div>
             </div>
             <div class="cards" id="cards-progress"></div>
@@ -400,7 +400,7 @@
 
         <div class="column">
             <div class="column-header">
-                <div class="column-title">⏳ Waiting</div>
+                <div class="column-title">⏳ Ожидание</div>
                 <div class="card-count" id="count-waiting">0</div>
             </div>
             <div class="cards" id="cards-waiting"></div>
@@ -408,7 +408,7 @@
 
         <div class="column">
             <div class="column-header">
-                <div class="column-title">🚫 Blocked</div>
+                <div class="column-title">🚫 Заблокировано</div>
                 <div class="card-count" id="count-blocked">0</div>
             </div>
             <div class="cards" id="cards-blocked"></div>
@@ -416,7 +416,7 @@
 
         <div class="column">
             <div class="column-header">
-                <div class="column-title">✅ Done</div>
+                <div class="column-title">✅ Готово</div>
                 <div class="card-count" id="count-done">0</div>
             </div>
             <div class="cards" id="cards-done"></div>
@@ -513,19 +513,19 @@
                 <div class="card-meta">
                     ${task.Project ? `<div class="project-badge" style="background: ${PROJECT_COLORS[task.Project] || '#667eea'}">${task.Project}</div>` : ''}
                     ${task.Assignee ? `<div class="assignee"><span class="assignee-icon">${assigneeIcon}</span>${task.Assignee}</div>` : ''}
-                    ${task.Created ? `<div class="card-date">Created: ${task.Created}</div>` : ''}
+                    ${task.Created ? `<div class="card-date">Создано: ${task.Created}</div>` : ''}
                 </div>
                 ${hasNotes ? `
                     <div class="card-notes">
                         <div class="notes-toggle" onclick="toggleNotes(this)">
                             <span>📝</span>
-                            <span>View notes</span>
+                            <span>Заметки</span>
                         </div>
                         <div class="notes-content">${task.Notes}</div>
                     </div>
                 ` : ''}
                 ${task['Blocked By'] && task['Blocked By'].trim() ? `
-                    <div class="blocked-by">🚫 Blocked by: ${task['Blocked By']}</div>
+                    <div class="blocked-by">🚫 Блокирует: ${task['Blocked By']}</div>
                 ` : ''}
             `;
 
@@ -535,7 +535,7 @@
         function toggleNotes(element) {
             const notesContent = element.nextElementSibling;
             const isExpanded = notesContent.classList.toggle('expanded');
-            element.querySelector('span:last-child').textContent = isExpanded ? 'Hide notes' : 'View notes';
+            element.querySelector('span:last-child').textContent = isExpanded ? 'Скрыть' : 'Заметки';
         }
 
         function renderBoard() {
@@ -585,7 +585,7 @@
 
             filteredTasks = allTasks.filter(task => {
                 const matchesSearch = !searchTerm ||
-                    task.Task.toLowerCase().includes(searchTerm) ||
+                    (task.Task && task.Task.toLowerCase().includes(searchTerm)) ||
                     (task.Notes && task.Notes.toLowerCase().includes(searchTerm)) ||
                     (task.Project && task.Project.toLowerCase().includes(searchTerm));
 
@@ -621,11 +621,11 @@
 
                 const now = new Date();
                 document.getElementById('lastUpdate').textContent =
-                    `Last updated: ${now.toLocaleTimeString()}`;
+                    `Обновлено: ${now.toLocaleTimeString('ru-RU')}`;
             } catch (error) {
                 console.error('Error loading tasks:', error);
                 document.getElementById('loading').textContent =
-                    'Error loading tasks. Please check the CSV URL.';
+                    'Ошибка загрузки. Проверьте подключение.';
             }
         }
 
