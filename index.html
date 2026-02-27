@@ -457,6 +457,20 @@
             '✅ Done': 'done'
         };
 
+        // Field name mapping (Russian headers)
+        const F = {
+            id: 'ID',
+            task: 'Задача',
+            project: 'Проект',
+            assignee: 'Исполнитель',
+            status: 'Статус',
+            priority: 'Приоритет',
+            created: 'Создано',
+            updated: 'Обновлено',
+            notes: 'Заметки',
+            blocked: 'Блокирует'
+        };
+
         let allTasks = [];
         let filteredTasks = [];
 
@@ -498,22 +512,24 @@
         function createCard(task) {
             const card = document.createElement('div');
             card.className = 'card';
-            card.style.setProperty('--project-color', PROJECT_COLORS[task.Project] || '#667eea');
+            card.style.setProperty('--project-color', PROJECT_COLORS[task[F.project]] || '#667eea');
 
-            const priorityClass = task.Priority ? `priority-${task.Priority.toLowerCase()}` : '';
-            const priorityIcon = PRIORITY_ICONS[task.Priority] || '';
-            const assigneeIcon = ASSIGNEE_ICONS[task.Assignee] || '👤';
-            const hasNotes = task.Notes && task.Notes.trim();
+            const priority = task[F.priority] || '';
+            const priorityKey = priority.includes('High') ? 'High' : priority.includes('Medium') ? 'Medium' : priority.includes('Low') ? 'Low' : '';
+            const priorityClass = priorityKey ? `priority-${priorityKey.toLowerCase()}` : '';
+            const priorityIcon = PRIORITY_ICONS[priorityKey] || '';
+            const assigneeIcon = ASSIGNEE_ICONS[task[F.assignee]] || '👤';
+            const hasNotes = task[F.notes] && task[F.notes].trim();
 
             card.innerHTML = `
                 <div class="card-header">
-                    <div class="card-title">${task.Task || 'Untitled Task'}</div>
+                    <div class="card-title">${task[F.task] || 'Без названия'}</div>
                     ${priorityIcon ? `<div class="priority-indicator ${priorityClass}">${priorityIcon}</div>` : ''}
                 </div>
                 <div class="card-meta">
-                    ${task.Project ? `<div class="project-badge" style="background: ${PROJECT_COLORS[task.Project] || '#667eea'}">${task.Project}</div>` : ''}
-                    ${task.Assignee ? `<div class="assignee"><span class="assignee-icon">${assigneeIcon}</span>${task.Assignee}</div>` : ''}
-                    ${task.Created ? `<div class="card-date">Создано: ${task.Created}</div>` : ''}
+                    ${task[F.project] ? `<div class="project-badge" style="background: ${PROJECT_COLORS[task[F.project]] || '#667eea'}">${task[F.project]}</div>` : ''}
+                    ${task[F.assignee] ? `<div class="assignee"><span class="assignee-icon">${assigneeIcon}</span>${task[F.assignee]}</div>` : ''}
+                    ${task[F.created] ? `<div class="card-date">Создано: ${task[F.created]}</div>` : ''}
                 </div>
                 ${hasNotes ? `
                     <div class="card-notes">
@@ -521,11 +537,11 @@
                             <span>📝</span>
                             <span>Заметки</span>
                         </div>
-                        <div class="notes-content">${task.Notes}</div>
+                        <div class="notes-content">${task[F.notes]}</div>
                     </div>
                 ` : ''}
-                ${task['Blocked By'] && task['Blocked By'].trim() ? `
-                    <div class="blocked-by">🚫 Блокирует: ${task['Blocked By']}</div>
+                ${task[F.blocked] && task[F.blocked].trim() ? `
+                    <div class="blocked-by">🚫 Блокирует: ${task[F.blocked]}</div>
                 ` : ''}
             `;
 
@@ -553,7 +569,7 @@
             });
 
             filteredTasks.forEach(task => {
-                const status = task.Status;
+                const status = task[F.status];
                 if (tasksByStatus[status]) {
                     tasksByStatus[status].push(task);
                 }
@@ -585,13 +601,13 @@
 
             filteredTasks = allTasks.filter(task => {
                 const matchesSearch = !searchTerm ||
-                    (task.Task && task.Task.toLowerCase().includes(searchTerm)) ||
-                    (task.Notes && task.Notes.toLowerCase().includes(searchTerm)) ||
-                    (task.Project && task.Project.toLowerCase().includes(searchTerm));
+                    (task['Задача'] && task['Задача'].toLowerCase().includes(searchTerm)) ||
+                    (task['Заметки'] && task['Заметки'].toLowerCase().includes(searchTerm)) ||
+                    (task['Проект'] && task['Проект'].toLowerCase().includes(searchTerm));
 
-                const matchesProject = !projectFilter || task.Project === projectFilter;
-                const matchesAssignee = !assigneeFilter || task.Assignee === assigneeFilter;
-                const matchesPriority = !priorityFilter || task.Priority === priorityFilter;
+                const matchesProject = !projectFilter || task['Проект'] === projectFilter;
+                const matchesAssignee = !assigneeFilter || task['Исполнитель'] === assigneeFilter;
+                const matchesPriority = !priorityFilter || (task['Приоритет'] && task['Приоритет'].includes(priorityFilter));
 
                 return matchesSearch && matchesProject && matchesAssignee && matchesPriority;
             });
