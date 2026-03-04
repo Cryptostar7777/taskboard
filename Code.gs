@@ -1,30 +1,37 @@
 const SHEET_ID = '1cEH-AJ1v7hAq-vWgpSEaEXHL8pnCDM6pmTb_rTIJzCw';
 const SHEET_NAME = 'Лист1';
 
+function doGet(e) {
+  var p = e && e.parameter ? e.parameter : {};
+  
+  // If payload param exists, parse it
+  if (p.payload) {
+    return handleAction(JSON.parse(p.payload));
+  }
+  
+  // If action param exists, use individual params
+  if (p.action) {
+    return handleAction(p);
+  }
+  
+  return out({status: 'ok', time: new Date().toISOString()});
+}
+
 function doPost(e) {
   try {
-    return handleRequest(e.postData.contents);
+    var data = JSON.parse(e.postData.contents);
+    return handleAction(data);
   } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.message}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return out({error: err.message});
   }
 }
 
-function doGet(e) {
-  if (e && e.parameter && e.parameter.payload) {
-    return handleRequest(e.parameter.payload);
-  }
-  return ContentService.createTextOutput(JSON.stringify({status: 'ok', time: new Date().toISOString()}))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function handleRequest(payloadStr) {
+function handleAction(data) {
   try {
-    const data = JSON.parse(payloadStr);
-    const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
-    let result;
+    var sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    var result;
     
-    switch(data.action) {
+    switch(String(data.action)) {
       case 'updateStatus':
         result = updateStatus(sheet, data.taskId, data.newStatus);
         break;
@@ -32,73 +39,77 @@ function handleRequest(payloadStr) {
         result = updateField(sheet, data.taskId, data.field, data.value);
         break;
       case 'addTask':
-        result = addTask(sheet, data.task);
+        var task = typeof data.task === 'string' ? JSON.parse(data.task) : (data.task || data);
+        result = addTask(sheet, task);
         break;
       case 'deleteTask':
         result = deleteTask(sheet, data.taskId);
         break;
+      case 'test':
+        result = {test: 'ok', params: data};
+        break;
       default:
-        result = {error: 'Unknown action'};
+        result = {error: 'Unknown action: ' + data.action};
     }
     
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+    return out(result);
   } catch(err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.message}))
-      .setMimeType(ContentService.MimeType.JSON);
+    return out({error: err.message});
   }
 }
 
+function out(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 function findRowByTaskId(sheet, taskId) {
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
     if (String(data[i][0]).trim() === String(taskId).trim()) return i + 1;
   }
   return -1;
 }
 
+function now() {
+  var d = new Date();
+  return ('0'+d.getDate()).slice(-2) + '.' + ('0'+(d.getMonth()+1)).slice(-2);
+}
+
 function updateStatus(sheet, taskId, newStatus) {
-  const row = findRowByTaskId(sheet, taskId);
+  var row = findRowByTaskId(sheet, taskId);
   if (row === -1) return {error: 'Task not found: ' + taskId};
   sheet.getRange(row, 5).setValue(newStatus);
-  const now = new Date();
-  sheet.getRange(row, 8).setValue(
-    String(now.getDate()).padStart(2,'0') + '.' + String(now.getMonth()+1).padStart(2,'0')
-  );
-  return {ok: true, taskId, newStatus};
+  sheet.getRange(row, 8).setValue(now());
+  return {ok: true, taskId: taskId, newStatus: newStatus};
 }
 
 function updateField(sheet, taskId, field, value) {
-  const row = findRowByTaskId(sheet, taskId);
+  var row = findRowByTaskId(sheet, taskId);
   if (row === -1) return {error: 'Task not found: ' + taskId};
   
-  const FIELD_MAP = {
+  var FIELD_MAP = {
     'task': 2, 'project': 3, 'assignee': 4, 'status': 5,
     'priority': 6, 'notes': 9, 'blocked': 10, 'deadline': 11, 'parent': 12
   };
   
-  const col = FIELD_MAP[field];
+  var col = FIELD_MAP[field];
   if (!col) return {error: 'Unknown field: ' + field};
   
   sheet.getRange(row, col).setValue(value);
-  const now = new Date();
-  sheet.getRange(row, 8).setValue(
-    String(now.getDate()).padStart(2,'0') + '.' + String(now.getMonth()+1).padStart(2,'0')
-  );
-  return {ok: true, taskId, field, value};
+  sheet.getRange(row, 8).setValue(now());
+  return {ok: true, taskId: taskId, field: field};
 }
 
 function addTask(sheet, task) {
-  const data = sheet.getDataRange().getValues();
-  let maxNum = 0;
-  for (let i = 1; i < data.length; i++) {
-    const id = String(data[i][0]);
-    const match = id.match(/T-(\d+)/);
+  var data = sheet.getDataRange().getValues();
+  var maxNum = 0;
+  for (var i = 1; i < data.length; i++) {
+    var id = String(data[i][0]);
+    var match = id.match(/T-(\d+)/);
     if (match) maxNum = Math.max(maxNum, parseInt(match[1]));
   }
-  const nextId = 'T-' + String(maxNum + 1).padStart(3, '0');
-  const now = new Date();
-  const dateStr = String(now.getDate()).padStart(2,'0') + '.' + String(now.getMonth()+1).padStart(2,'0');
+  var nextId = 'T-' + ('000' + (maxNum + 1)).slice(-3);
   
   sheet.appendRow([
     nextId,
@@ -107,7 +118,7 @@ function addTask(sheet, task) {
     task.assignee || '',
     task.status || '📋 To Do',
     task.priority || '🟡 Medium',
-    dateStr, '', 
+    now(), '',
     task.notes || '',
     task.blocked || '',
     task.deadline || '',
@@ -118,8 +129,8 @@ function addTask(sheet, task) {
 }
 
 function deleteTask(sheet, taskId) {
-  const row = findRowByTaskId(sheet, taskId);
+  var row = findRowByTaskId(sheet, taskId);
   if (row === -1) return {error: 'Task not found: ' + taskId};
   sheet.deleteRow(row);
-  return {ok: true, taskId};
+  return {ok: true, taskId: taskId};
 }
