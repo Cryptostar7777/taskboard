@@ -62,7 +62,7 @@ function updateField(sheet, taskId, field, value) {
   
   const FIELD_MAP = {
     'task': 2, 'project': 3, 'assignee': 4, 'status': 5,
-    'priority': 6, 'notes': 9, 'blocked': 10, 'deadline': 11
+    'priority': 6, 'notes': 9, 'blocked': 10, 'deadline': 11, 'parent': 12
   };
   
   const col = FIELD_MAP[field];
@@ -98,7 +98,8 @@ function addTask(sheet, task) {
     dateStr, '', 
     task.notes || '',
     task.blocked || '',
-    task.deadline || ''
+    task.deadline || '',
+    task.parent || ''
   ]);
   
   return {ok: true, taskId: nextId};

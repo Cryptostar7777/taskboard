@@ -208,6 +208,9 @@
                 <option value="">Все</option>
                 <option value="Egor">Egor</option>
                 <option value="Vivara">Vivara</option>
+                <option value="CRM">CRM</option>
+                <option value="BaliHousing">BaliHousing</option>
+                <option value="Цехмастер">Цехмастер</option>
             </select>
             <button class="filter-btn" id="hideDone">Скрыть ✅</button>
             <button class="filter-btn add-btn" id="addBtn">＋ Задача</button>
@@ -289,6 +292,9 @@
                         <option value="">—</option>
                         <option>Egor</option>
                         <option>Vivara</option>
+                        <option>CRM</option>
+                        <option>BaliHousing</option>
+                        <option>Цехмастер</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -318,9 +324,15 @@
                 <label>Заметки</label>
                 <textarea class="form-textarea" id="editNotes" placeholder="Контекст, ссылки, детали..."></textarea>
             </div>
-            <div class="form-group">
-                <label>Блокирует</label>
-                <input type="text" class="form-input" id="editBlocked" placeholder="Что блокирует выполнение?">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                    <label>Блокирует</label>
+                    <input type="text" class="form-input" id="editBlocked" placeholder="Что блокирует?">
+                </div>
+                <div class="form-group">
+                    <label>Родитель (ID подзадачи)</label>
+                    <input type="text" class="form-input" id="editParent" placeholder="T-001">
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" id="cancelBtn">Отмена</button>
@@ -363,9 +375,14 @@
             '📋 To Do': 'todo', '🔄 In Progress': 'progress',
             '⏳ Waiting': 'waiting', '🚫 Blocked': 'blocked', '✅ Done': 'done'
         };
+        const ASSIGNEE_ICONS = {
+            'Egor': '👤', 'Vivara': '🌀', 'CRM': '📊',
+            'BaliHousing': '🏠', 'Цехмастер': '🏭'
+        };
         const F = { id:'ID', task:'Задача', project:'Проект', assignee:'Исполнитель',
                      status:'Статус', priority:'Приоритет', created:'Создано',
-                     updated:'Обновлено', notes:'Заметки', blocked:'Блокирует', deadline:'Дедлайн' };
+                     updated:'Обновлено', notes:'Заметки', blocked:'Блокирует',
+                     deadline:'Дедлайн', parent:'Родитель' };
 
         let allTasks = [], filteredTasks = [], hideDone = false;
 
@@ -428,9 +445,10 @@
                 </div>
                 <div class="card-meta">
                     ${task[F.project] ? `<span class="project-badge" style="background:${PROJECT_COLORS[task[F.project]] || '#667eea'}">${task[F.project]}</span>` : ''}
-                    ${task[F.assignee] ? `<span class="meta-tag">${task[F.assignee] === 'Vivara' ? '🌀' : '👤'} ${task[F.assignee]}</span>` : ''}
+                    ${task[F.assignee] ? `<span class="meta-tag">${ASSIGNEE_ICONS[task[F.assignee]] || '🤖'} ${task[F.assignee]}</span>` : ''}
                     ${deadlineTag}
                 </div>
+                ${task[F.parent] ? `<div style="font-size:0.7rem;color:rgba(255,255,255,0.4);margin-top:0.3rem">↳ подзадача ${task[F.parent]}</div>` : ''}
                 ${task[F.notes] ? `<div class="card-notes-preview">📝 ${task[F.notes]}</div>` : ''}
                 ${task[F.blocked] && task[F.blocked].trim() ? `<div class="blocked-by">🚫 ${task[F.blocked]}</div>` : ''}
             `;
@@ -536,6 +554,7 @@
             document.getElementById('editDeadline').value = task[F.deadline] || '';
             document.getElementById('editNotes').value = task[F.notes] || '';
             document.getElementById('editBlocked').value = task[F.blocked] || '';
+            document.getElementById('editParent').value = task[F.parent] || '';
             document.getElementById('deleteBtn').style.display = 'block';
             document.getElementById('modalOverlay').classList.add('active');
         }
@@ -551,6 +570,7 @@
             document.getElementById('editDeadline').value = '';
             document.getElementById('editNotes').value = '';
             document.getElementById('editBlocked').value = '';
+            document.getElementById('editParent').value = '';
             document.getElementById('deleteBtn').style.display = 'none';
             document.getElementById('modalOverlay').classList.add('active');
             document.getElementById('editName').focus();
@@ -567,6 +587,7 @@
                 deadline: document.getElementById('editDeadline').value,
                 notes: document.getElementById('editNotes').value,
                 blocked: document.getElementById('editBlocked').value,
+                parent: document.getElementById('editParent').value,
             };
 
             if (!data.title) { showToast('Введите название', 'error'); return; }
@@ -618,18 +639,32 @@
 
         // ─── API ───
         async function apiCall(data) {
-            if (!API_URL) return null;
+            if (!API_URL) {
+                showToast('API не подключён — нажми ⬤ внизу', 'error');
+                return null;
+            }
             try {
                 const res = await fetch(API_URL, {
-                    method: 'POST', mode: 'no-cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(data)
+                    method: 'POST',
+                    body: JSON.stringify(data),
+                    redirect: 'follow'
                 });
-                return { ok: true };
+                // GAS returns redirect, try to parse
+                try { return await res.json(); } catch { return { ok: true }; }
             } catch (err) {
-                console.error('API error:', err);
-                showToast('Ошибка API', 'error');
-                return null;
+                // CORS fallback: use no-cors (sends but can't read response)
+                try {
+                    await fetch(API_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: JSON.stringify(data)
+                    });
+                    return { ok: true };
+                } catch (e2) {
+                    console.error('API error:', e2);
+                    showToast('Ошибка API', 'error');
+                    return null;
+                }
             }
         }
 
