@@ -188,7 +188,8 @@
         @media (max-width: 768px) {
             .header h1 { font-size: 1.5rem; }
             .search-bar { min-width: 100%; }
-            .board { grid-template-columns: 1fr; padding: 0.75rem; }
+            .board { padding: 0.75rem; }
+            .column { width: 260px; min-width: 260px; }
             .controls { padding: 0 0.5rem; }
             .stats { padding: 0.5rem; }
         }
@@ -689,7 +690,7 @@
                 allTasks = parseCSV(csv);
                 filteredTasks = [...allTasks];
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('board').style.display = 'grid';
+                document.getElementById('board').style.display = 'flex';
                 applyFilters();
                 document.getElementById('lastUpdate').textContent =
                     `Обновлено: ${new Date().toLocaleTimeString('ru-RU')}`;
