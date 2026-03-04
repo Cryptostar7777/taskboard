@@ -364,7 +364,8 @@
         // ─── Config ───
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/1cEH-AJ1v7hAq-vWgpSEaEXHL8pnCDM6pmTb_rTIJzCw/export?format=csv';
         const REFRESH_MS = 60000;
-        let API_URL = localStorage.getItem('taskboard_api_url') || '';
+        const DEFAULT_API = 'https://script.google.com/macros/s/AKfycby2bqmeAftjRUgBScsmKGRXlyRgBAFDsslO75BwCWUnXN0JWmZCLewA3z3hWhOmzvMyCg/exec';
+        let API_URL = localStorage.getItem('taskboard_api_url') || DEFAULT_API;
 
         const PROJECT_COLORS = {
             'Bali Housing': '#00b894', 'Чистый воздух': '#6c5ce7',
