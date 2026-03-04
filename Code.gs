@@ -3,7 +3,24 @@ const SHEET_NAME = 'Лист1';
 
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    return handleRequest(e.postData.contents);
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({error: err.message}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  if (e && e.parameter && e.parameter.payload) {
+    return handleRequest(e.parameter.payload);
+  }
+  return ContentService.createTextOutput(JSON.stringify({status: 'ok', time: new Date().toISOString()}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleRequest(payloadStr) {
+  try {
+    const data = JSON.parse(payloadStr);
     const sheet = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
     let result;
     
@@ -30,11 +47,6 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({error: err.message}))
       .setMimeType(ContentService.MimeType.JSON);
   }
-}
-
-function doGet(e) {
-  return ContentService.createTextOutput(JSON.stringify({status: 'ok', time: new Date().toISOString()}))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function findRowByTaskId(sheet, taskId) {
