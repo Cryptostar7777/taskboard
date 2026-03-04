@@ -605,12 +605,8 @@
                     task[F.status] = data.status; task[F.deadline] = data.deadline;
                     task[F.notes] = data.notes; task[F.blocked] = data.blocked;
                 }
-                // Send each changed field to API
-                const fields = {task:'title',project:'project',assignee:'assignee',priority:'priority',
-                                status:'status',notes:'notes',blocked:'blocked',deadline:'deadline'};
-                for (const [apiField, key] of Object.entries(fields)) {
-                    await apiCall({ action: 'updateField', taskId, field: apiField, value: data[key] });
-                }
+                // Send ALL fields in one request
+                await apiCall({ action: 'bulkUpdate', taskId, fields: data });
                 showToast(`${taskId} обновлён ✅`);
             } else {
                 // Add new
@@ -642,27 +638,17 @@
         }
 
         // ─── API ───
-        async function apiCall(data) {
+        function apiCall(data) {
             if (!API_URL) {
                 showToast('API не подключён — нажми ⬤ внизу', 'error');
-                return null;
+                return Promise.resolve(null);
             }
-            try {
-                const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(data))}`;
-                // Use Image to bypass CORS entirely
-                return new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = img.onerror = () => resolve({ ok: true });
-                    img.src = url;
-                    // Also try fetch for response
-                    fetch(url, { mode: 'no-cors' }).catch(() => {});
-                    setTimeout(() => resolve({ ok: true }), 3000);
-                });
-            } catch (err) {
-                console.error('API error:', err);
-                showToast('Ошибка API', 'error');
-                return null;
-            }
+            const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(data))}`;
+            // Fire-and-forget: send via Image (instant, no CORS)
+            new Image().src = url;
+            // Also send via fetch for reliability
+            fetch(url, { mode: 'no-cors' }).catch(() => {});
+            return Promise.resolve({ ok: true });
         }
 
         function updateApiStatus() {

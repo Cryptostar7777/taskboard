@@ -42,6 +42,10 @@ function handleAction(data) {
         var task = typeof data.task === 'string' ? JSON.parse(data.task) : (data.task || data);
         result = addTask(sheet, task);
         break;
+      case 'bulkUpdate':
+        var fields = typeof data.fields === 'string' ? JSON.parse(data.fields) : data.fields;
+        result = bulkUpdate(sheet, data.taskId, fields);
+        break;
       case 'deleteTask':
         result = deleteTask(sheet, data.taskId);
         break;
@@ -99,6 +103,26 @@ function updateField(sheet, taskId, field, value) {
   sheet.getRange(row, col).setValue(value);
   sheet.getRange(row, 8).setValue(now());
   return {ok: true, taskId: taskId, field: field};
+}
+
+function bulkUpdate(sheet, taskId, fields) {
+  var row = findRowByTaskId(sheet, taskId);
+  if (row === -1) return {error: 'Task not found: ' + taskId};
+  
+  var FIELD_MAP = {
+    'title': 2, 'task': 2, 'project': 3, 'assignee': 4, 'status': 5,
+    'priority': 6, 'notes': 9, 'blocked': 10, 'deadline': 11, 'parent': 12
+  };
+  
+  var updated = [];
+  for (var key in fields) {
+    if (FIELD_MAP[key]) {
+      sheet.getRange(row, FIELD_MAP[key]).setValue(fields[key] || '');
+      updated.push(key);
+    }
+  }
+  sheet.getRange(row, 8).setValue(now());
+  return {ok: true, taskId: taskId, updated: updated};
 }
 
 function addTask(sheet, task) {
